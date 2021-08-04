@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Pycharm 
-.idea/*
-!.idea/.gitigore
+meiduo_mall/.idea/*
+!meiduo_mall/.idea/.gitignore
