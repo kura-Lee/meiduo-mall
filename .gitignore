@@ -130,4 +130,3 @@ dmypy.json
 
 # Pycharm 
 meiduo_mall/.idea/*
-!meiduo_mall/.idea/.gitignore
