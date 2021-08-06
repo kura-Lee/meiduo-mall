@@ -13,18 +13,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+from django.conf.urls import url
 from django.urls import path, include
-from utils.converters import UsernameConvert, MobileConvert
-from django.urls import register_converter
-#注册转换器
-register_converter(UsernameConvert, 'username')
-register_converter(MobileConvert, 'mobile')
+
+from apps.verifications.views import ImageCodeView, SmsCodeView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('apps.users.urls')),
-    path('', include('apps.verifications.urls')),
+    url(r'^image_codes/(?P<uuid>[\w-]+)/$', ImageCodeView.as_view(), name='captcha'),
+    path('sms_codes/<mobile:mobile>/', SmsCodeView.as_view(), name='captcha'),
 ]
 
 
