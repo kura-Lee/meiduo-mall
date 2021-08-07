@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger('django')
 
 class ImageCodeView(View):
-    """图形验证码"""
+    """产生图形验证码"""
     def get(self, request, uuid):
         text, image = captcha.generate_captcha()
         redis_conn = get_redis_connection('code')
@@ -21,7 +21,7 @@ class ImageCodeView(View):
 
 
 class SmsCodeView(View):
-    """短信验证码"""
+    """产生短信验证码"""
     def get(self, request, mobile):
         image_code = request.GET.get('image_code')
         if image_code == '':
@@ -45,18 +45,21 @@ class SmsCodeView(View):
             return JsonResponse({'code': 401, 'errmsg': '请求过于频繁，请稍后再试！'})
         # 图片验证码校验
         if image_code.lower() == text.lower():
-            print("校验成功")
+            # print("校验成功")
             sms_code = '%06d' % randint(0, 999999)
-            redis_conn.setex('sms_%s' % mobile, 300, sms_code)
+            print(sms_code)
             # 设置频繁请求短信验证码falg
             redis_conn.setex('send_flag_%s' % mobile, 60, 1)
-            res = send_sms(mobile, [sms_code, 5], 1)
+            # res = send_sms(mobile, [sms_code, 5], 1)
+            from celery_tasks.sms.tasks import send_sms_code
+            res = send_sms_code.delay(mobile, sms_code)
             if res == -1:
                 print("发送失败")
                 return JsonResponse({'code': 0, 'errmsg': '短信发送失败'})
             else:
                 print("发送成功")
+                redis_conn.setex('sms_%s' % mobile, 300, sms_code)
                 return JsonResponse({'code': 0, 'errmsg': '短信发送成功'})
         else:
-            print("校验失败")
+            # print("校验失败")
             return JsonResponse({'code': 400, 'errmsg': '图片验证码错误'})

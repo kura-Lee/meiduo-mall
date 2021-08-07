@@ -1,6 +1,6 @@
 import json
-
-from django.contrib.auth import login
+from datetime import timedelta
+from django.contrib.auth import login, authenticate, logout
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
@@ -10,6 +10,9 @@ from apps.users.form import RegisterForm
 from django_redis import get_redis_connection
 import logging
 logger = logging.getLogger("django")
+from utils.views import LoginRequiredJSONMixin
+
+
 
 class UsernameCountView(View):
     """
@@ -27,7 +30,6 @@ class MobileCountView(View):
     """
     def get(self, request, mobile):
         count = User.objects.filter(mobile=mobile).count()
-        print("手机号码重复：",count)
         return JsonResponse({'code': 0, 'count': count, 'errormsg': 'OK'})
 
 
@@ -36,17 +38,6 @@ class UserRegisterView(View):
     用户注册
     """
     def post(self, request):
-        # form = RegisterForm(request.POST, request=request)
-        # if form.is_valid():
-        #     username = form.cleaned_data.get('username')
-        #     password = form.cleaned_data.get('password')
-        #     mobile = form.cleaned_data.get('mobile')
-        #     # form.cleaned_data.get('sms_code')
-        #     print(username, password, mobile)
-        #     print(11111)
-        # print(form.errors)
-        # print(2222222222222)
-
         json_str = request.body.decode()
         parameter_dict = json.loads(json_str)
         print(parameter_dict)
@@ -60,10 +51,11 @@ class UserRegisterView(View):
             return JsonResponse({'code':400, 'errmsg':'缺少必传参数!'})
         if allow != True:
             return JsonResponse({'code': 400, 'errmsg': '请勾选用户协议'})
+        # 短信验证码校验
         redis_conn = get_redis_connection('code')
         sms = redis_conn.get('sms_%s' % mobile)
         if sms is None:
-            return JsonResponse({'code': 400, 'errmsg': '短信验证码已过期'})
+            return JsonResponse({'code': 400, 'errmsg': '短信验证码不存在或已过期'})
         else:
             sms = sms.decode()
             try:
@@ -87,4 +79,61 @@ class UserRegisterView(View):
             # print(e)
             return JsonResponse({'code': 400, 'errmsg': '注册失败'})
         login(request, user)
-        return JsonResponse({'code': 0, 'errmsg': '注册成功'})
+        response = JsonResponse({'code': 0, 'errmsg': '注册成功'})
+        response.set_cookie('username', user.username)
+        request.session.set_expiry(0)
+        return response
+
+
+class LoginView(View):
+    def post(self, request):
+        data = json.loads(request.body.decode())
+        username = data.get("username")
+        password = data.get("password")
+        remembered = data.get("remembered")
+        if not all([username, password]):
+            return JsonResponse({'code': '400', 'errmsg': '请输入用户名或密码'})
+        # 手机号登录
+        if re.match(r'^1[3-9]\d{9}$', username):
+            # 修改django认证字段为mobile
+            User.USERNAME_FIELD = 'mobile'
+        else:
+            User.USERNAME_FIELD = 'username'
+        user = authenticate(username=username, password=password)
+        if not user:
+            return JsonResponse({'code': '400', 'errmsg': '用户名或密码错误'})
+        login(request, user)
+        if remembered:
+            request.session.set_expiry(timedelta(days=10))
+        else:
+            request.session.set_expiry(0)
+        response = JsonResponse({'code': 0, 'errmsg': 'ok'})
+        response.set_cookie('username', user.username, max_age=3600 * 24 * 10)
+        return response
+
+
+class LogoutView(View):
+    def delete(self, request):
+        logout(request)
+        response = JsonResponse({'code': 0, 'errmsg': 'ok'})
+        response.delete_cookie('username')
+        return response
+
+
+class UserInfoView(LoginRequiredJSONMixin, View):
+    def get(self, request):
+        """个人信息界面"""
+        return JsonResponse({
+            'code': 0,
+            'errmsg': '个人中心',
+            "info_data": {
+                "username": request.user.username,
+                "mobile": request.user.mobile,
+                "email": request.user.email,
+                "email_active": request.user.email_active
+            }
+        })
+
+    def put(self, request):
+        pass
+
