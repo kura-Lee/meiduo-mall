@@ -45,6 +45,11 @@ INSTALLED_APPS = [
     'apps.verifications',
     'apps.oauth',
     'apps.areas',
+    'apps.contents',
+    'apps.goods',
+    'haystack',
+    'django_crontab',
+    'apps.orders',
 ]
 
 MIDDLEWARE = [
@@ -118,6 +123,20 @@ CACHES = {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
             }
         },
+    "history": { # 用户浏览记录
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/3",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "carts": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/4",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "session"
@@ -241,3 +260,43 @@ EMAIL_HOST_PASSWORD = service_auth_key.EMAIL_HOST_PASSWORD
 EMAIL_FROM = service_auth_key.EMAIL_FROM
 # 邮箱验证链接
 EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html'
+
+# 指定自定义的Django文件存储类
+DEFAULT_FILE_STORAGE = 'utils.FastDFS.storage.FastDFSStorage'
+
+# FastDFS相关参数
+FDFS_BASE_URL = 'http://172.17.43.157:8888/'
+# FDFS_BASE_URL = 'http://image.meiduo.site:8888/'
+
+# Haystack设置
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
+        'URL': 'http://172.17.43.157:9200/', # Elasticsearch服务器ip地址，端口号固定为9200
+        'INDEX_NAME': 'meiduo_mall', # Elasticsearch建立的索引库的名称
+    },
+}
+# 当添加、修改、删除数据时，自动生成索引
+# HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
+# 控制每页显示数量
+HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
+
+# django_crontab周期自动生成静态文件
+"""
+# 元素的第一个参数是 频次
+分 时 日 月 周    命令
+
+M: 分钟（0-59）。每分钟用 * 或者 */1 表示
+H：小时（0-23）。（0表示0点）
+D：天（1-31）。
+m: 月（1-12）。
+d: 一星期内的天（0~6，0为星期天）。
+
+# 元素的第二个参数是 定时任务（函数）
+# 第三个参数是日志的的写入
+"""
+CRONJOBS = [
+    # 每1分钟生成一次首页静态文件
+    ('*/1 * * * *', 'apps.contents.crons.generate_static_index_html', '>> ' + os.path.join(BASE_DIR, 'logs/crontab.log'))
+]
+

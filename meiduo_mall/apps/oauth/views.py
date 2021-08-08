@@ -1,19 +1,19 @@
 import json
+import logging
 import re
 
+from QQLoginTool.QQtool import OAuthQQ
 from django import http
 from django.conf import settings
 from django.contrib.auth import login
 from django.db import DatabaseError
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.views import View
-from QQLoginTool.QQtool import OAuthQQ
-import logging
-
 from django_redis import get_redis_connection
 
 from apps.oauth.utils import QQ_access_token
 from apps.users.models import OAuthQQUser, User
+from utils.carts import merge_cart_cookie_to_redis
 
 logger = logging.getLogger('django')
 
@@ -56,14 +56,16 @@ class QQAuthUserView(View):
         except OAuthQQUser.DoesNotExist:
             # 未绑定用户
             access_token = QQ_access_token.generate_access_token({'openid': openid})
-            return http.JsonResponse({'code': 300, 'errmsg': 'ok', 'access_token': access_token})
+            response = JsonResponse({'code': 300, 'errmsg': 'ok', 'access_token': access_token})
         else:
             # 绑定用户
             user = oauth_qq.user
             login(request, user)
             response = JsonResponse({'code': 0, 'errmsg': 'ok'})
             response.set_cookie('username', user.username, max_age=3600*24*10)
-            return response
+            # 合并购物车
+            response = merge_cart_cookie_to_redis(request=request, user=user, response=response)
+        return response
 
     def post(self, request):
         """绑定用户到openid"""
@@ -102,6 +104,8 @@ class QQAuthUserView(View):
         login(request, user)
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
         response.set_cookie('username', user.username, max_age=3600*24*10)
+        # 合并购物车
+        response = merge_cart_cookie_to_redis(request=request, user=user, response=response)
         return response
 
 

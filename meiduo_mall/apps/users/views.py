@@ -5,11 +5,15 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 from apps.areas.models import Area
+from apps.goods.models import SKU
 from apps.users.models import User, Address, USER_ADDRESS_COUNTS_LIMIT
 import re
 from apps.users.form import RegisterForm
 from django_redis import get_redis_connection
 import logging
+
+from utils.carts import merge_cart_cookie_to_redis
+
 logger = logging.getLogger("django")
 from utils.views import LoginRequiredJSONMixin
 
@@ -109,7 +113,10 @@ class LoginView(View):
         else:
             request.session.set_expiry(0)
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
+        # 设置username的cookie，方便前端显示
         response.set_cookie('username', user.username, max_age=3600 * 24 * 10)
+        # 合并购物车
+        response = merge_cart_cookie_to_redis(request=request, user=user, response=response)
         return response
 
 
@@ -137,7 +144,7 @@ class UserInfoView(LoginRequiredJSONMixin, View):
 
 
 class UserEmailView(LoginRequiredJSONMixin, View):
-
+    """邮箱验证发送邮件"""
     def put(self, request):
         json_dict = json.loads(request.body.decode())
         email = json_dict.get('email')
@@ -158,6 +165,7 @@ class UserEmailView(LoginRequiredJSONMixin, View):
         return JsonResponse({'code': 0, 'errmsg': '添加邮箱成功'})
 
 class VerifyEmailView(View):
+    """验证邮箱"""
     def put(self, request):
         token = request.GET.get('token')
         if not token:
@@ -372,3 +380,51 @@ class TitleAddress(LoginRequiredJSONMixin, View):
             logger.error(e)
             return JsonResponse({'code': 400, 'errmsg': '设置地址标题失败'}, status=400)
         return JsonResponse({'code': 0, 'errmsg': '设置地址标题成功'})
+
+
+class UserHistoryView(View):
+    """用户浏览记录"""
+
+    def get(self, request):
+        """获取用户浏览记录"""
+        user_id = request.user.id
+        redis_conn = get_redis_connection('history')
+        sku_list = redis_conn.lrange('usr_history_%s' % user_id, 0, -1)
+        skus = []
+        for sku in sku_list:
+            skus.append({
+                "id": sku.id,
+                "name": sku.name,
+                "default_image_url": sku.default_image.url,
+                "price": sku.price
+            })
+        return JsonResponse({'code': 0, 'errmsg': 'OK', 'skus': skus})
+
+
+    def post(self, request):
+        """保存用户浏览记录"""
+        # 获取参数
+        data = json.loads(request.body.decode())
+        sku_id = data.get('sku_id')
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except Exception as e:
+            return JsonResponse({'code': 400, 'errmsg': '参数错误'}, status=400)
+
+        redis_conn = get_redis_connection('history')
+        pl = redis_conn.pipeline()
+        user_id = request.user.id
+        # 去重
+        pl.lrem('usr_history_%s' % user_id, 0, sku_id)
+        # 存储
+        pl.lpush('usr_history_%s' % user_id, sku_id)
+        # 截取5条，默认只保留5条数据
+        pl.ltrim('usr_history_%s' % user_id, 0, 4)
+        # 入库
+        pl.execute()
+        # 响应结果
+        return JsonResponse({'code': 0, 'errmsg': 'OK'})
+
+
+
+

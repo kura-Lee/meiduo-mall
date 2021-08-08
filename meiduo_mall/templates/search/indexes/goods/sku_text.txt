@@ -1,0 +1,7 @@
+# 指明当前要检索的字段，object就是模型的实例
+{{ object.id }}
+{{ object.name }}
+{{ object.caption }}
+
+
+

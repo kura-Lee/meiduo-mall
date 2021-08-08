@@ -2,7 +2,7 @@ from django.conf.urls import url
 from django.urls import path
 from apps.users.views import UsernameCountView, MobileCountView, UserRegisterView, \
     LoginView, LogoutView, UserInfoView, UserEmailView, VerifyEmailView, CreateAddressView,\
-    AddressView, DefaultAddress, TitleAddress, ChangePasswordView
+    AddressView, DefaultAddress, TitleAddress, ChangePasswordView, UserHistoryView
 
 urlpatterns = [
     path('usernames/<username:username>/count/', UsernameCountView.as_view(), name="usernamecount"),
@@ -19,4 +19,6 @@ urlpatterns = [
     url(r'^addresses/(?P<address_id>\d+)/$', AddressView.as_view()),
     url(r'^addresses/(?P<address_id>\d+)/default/$', DefaultAddress.as_view()),
     url(r'^addresses/(?P<address_id>\d+)/title/$', TitleAddress.as_view()),
+
+    path('browse_histories/', UserHistoryView.as_view()),
 ]
