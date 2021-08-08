@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import service_auth_key
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,6 +43,8 @@ INSTALLED_APPS = [
     'apps.users',
     'corsheaders',
     'apps.verifications',
+    'apps.oauth',
+    'apps.areas',
 ]
 
 MIDDLEWARE = [
@@ -219,9 +222,22 @@ CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 
 
 # QQ登录参数
-# 我们申请的 客户端id
-QQ_CLIENT_ID = '101474184'
-# 我们申请的 客户端秘钥
-QQ_CLIENT_SECRET = 'c6ce949e04e12ecc909ae6a8b09b637c'
-# 我们申请时添加的: 登录成功后回调的路径
-QQ_REDIRECT_URI = 'http://www.meiduo.site:8080/oauth_callback.html'
+# 客户端id
+QQ_CLIENT_ID = service_auth_key.QQ_CLIENT_ID
+# 客户端秘钥
+QQ_CLIENT_SECRET = service_auth_key.QQ_CLIENT_SECRET
+# 登录成功后回调的路径
+QQ_REDIRECT_URI = service_auth_key.QQ_REDIRECT_URI
+
+# 邮箱配置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.163.com'
+EMAIL_PORT = 25
+#发送邮件的邮箱
+EMAIL_HOST_USER = service_auth_key.EMAIL_HOST_USER
+#在邮箱中设置的客户端授权密码
+EMAIL_HOST_PASSWORD = service_auth_key.EMAIL_HOST_PASSWORD
+#收件人看到的发件人
+EMAIL_FROM = service_auth_key.EMAIL_FROM
+# 邮箱验证链接
+EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html'

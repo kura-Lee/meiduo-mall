@@ -22,3 +22,4 @@ class QQAuth:
 
 
 QQ_access_token = QQAuth(settings.SECRET_KEY)
+
