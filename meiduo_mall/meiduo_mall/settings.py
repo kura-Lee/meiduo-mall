@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import service_auth_key
+from keys import service_auth_key
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'haystack',
     'django_crontab',
     'apps.orders',
+    'apps.pay',
 ]
 
 MIDDLEWARE = [
@@ -95,8 +96,18 @@ DATABASES = {
         "USER": 'super',
         "PASSWORD": "mysql",
         'NAME': "meiduo_mall",
-    }
+    },
+    'slave': {
+            'ENGINE': 'django.db.backends.mysql',
+            'HOST': "127.0.0.1",
+            "PORT": 3309,
+            "USER": 'super',
+            "PASSWORD": "mysql",
+            'NAME': "meiduo_mall",
+        }
 }
+
+DATABASE_ROUTERS = ['utils.db_router.MasterSlaveDBRouter']
 
 CACHES = {
     # 默认库
@@ -171,7 +182,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -240,7 +251,7 @@ CORS_ORIGIN_WHITELIST = (
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 
 
-# QQ登录参数
+############################### QQ登录参数
 # 客户端id
 QQ_CLIENT_ID = service_auth_key.QQ_CLIENT_ID
 # 客户端秘钥
@@ -248,7 +259,7 @@ QQ_CLIENT_SECRET = service_auth_key.QQ_CLIENT_SECRET
 # 登录成功后回调的路径
 QQ_REDIRECT_URI = service_auth_key.QQ_REDIRECT_URI
 
-# 邮箱配置
+################################# 邮箱配置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.163.com'
 EMAIL_PORT = 25
@@ -264,11 +275,11 @@ EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html'
 # 指定自定义的Django文件存储类
 DEFAULT_FILE_STORAGE = 'utils.FastDFS.storage.FastDFSStorage'
 
-# FastDFS相关参数
+################################# FastDFS相关参数
 FDFS_BASE_URL = 'http://172.17.43.157:8888/'
 # FDFS_BASE_URL = 'http://image.meiduo.site:8888/'
 
-# Haystack设置
+################################# Haystack设置
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
@@ -281,7 +292,7 @@ HAYSTACK_CONNECTIONS = {
 # 控制每页显示数量
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
 
-# django_crontab周期自动生成静态文件
+############################# django_crontab周期自动生成静态文件
 """
 # 元素的第一个参数是 频次
 分 时 日 月 周    命令
@@ -300,3 +311,14 @@ CRONJOBS = [
     ('*/1 * * * *', 'apps.contents.crons.generate_static_index_html', '>> ' + os.path.join(BASE_DIR, 'logs/crontab.log'))
 ]
 
+################支付宝支付
+ALIPAY_APPID = '2021000117693575'
+ALIPAY_DEBUG = False
+# 沙箱网关
+ALIPAY_URL = 'https://openapi.alipaydev.com/gateway.do?'
+ALIPAY_RETURN_URL = 'http://www.meiduo.site:8080/pay_success.html'
+APP_PRIVATE_KEY_STRING = open(os.path.join(BASE_DIR, 'keys/app_private_key.pem')).read()
+ALIPAY_PUBLIC_KEY_STRING = open(os.path.join(BASE_DIR, 'keys/ali_pay_public_key.pem')).read()
+
+
+ORDER_SUBJECT = '美多商城订单'

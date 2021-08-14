@@ -155,8 +155,9 @@ class CartView(View):
             pl.execute()
             cart_sku = {
                 'id': sku_id,
+                'name': sku.name,
                 'count': count,
-                'selected': sku.name,
+                'selected': selected,
                 'default_image_url': sku.default_image.url,
                 'price': sku.price,
                 'amount': sku.price * count
