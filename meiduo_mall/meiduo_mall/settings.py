@@ -322,3 +322,5 @@ ALIPAY_PUBLIC_KEY_STRING = open(os.path.join(BASE_DIR, 'keys/ali_pay_public_key.
 
 
 ORDER_SUBJECT = '美多商城订单'
+
+
