@@ -97,17 +97,17 @@ DATABASES = {
         "PASSWORD": "mysql",
         'NAME': "meiduo_mall",
     },
-    'slave': {
-            'ENGINE': 'django.db.backends.mysql',
-            'HOST': "127.0.0.1",
-            "PORT": 3309,
-            "USER": 'super',
-            "PASSWORD": "mysql",
-            'NAME': "meiduo_mall",
-        }
+    # 'slave': {
+    #         'ENGINE': 'django.db.backends.mysql',
+    #         'HOST': "127.0.0.1",
+    #         "PORT": 3309,
+    #         "USER": 'super',
+    #         "PASSWORD": "mysql",
+    #         'NAME': "meiduo_mall",
+    #     }
 }
 
-DATABASE_ROUTERS = ['utils.db_router.MasterSlaveDBRouter']
+# DATABASE_ROUTERS = ['utils.db_router.MasterSlaveDBRouter']
 
 CACHES = {
     # 默认库
@@ -182,7 +182,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -246,7 +246,10 @@ CORS_ORIGIN_WHITELIST = (
     'http://127.0.0.1:8080',
     'http://localhost:8080',
     'http://www.meiduo.site:8080',
-    'http://www.meiduo.site:8000'
+    'http://www.meiduo.site:8000',
+    'http://127.0.0.1:8088',
+    'http://localhost:8088',
+    'http://www.meiduo.site:8088',
 )
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 
@@ -276,8 +279,8 @@ EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html'
 DEFAULT_FILE_STORAGE = 'utils.FastDFS.storage.FastDFSStorage'
 
 ################################# FastDFS相关参数
-FDFS_BASE_URL = 'http://172.17.43.157:8888/'
-# FDFS_BASE_URL = 'http://image.meiduo.site:8888/'
+# FDFS_BASE_URL = 'http://172.17.43.157:8888/'
+FDFS_BASE_URL = 'http://image.meiduo.site:8888/'
 
 ################################# Haystack设置
 HAYSTACK_CONNECTIONS = {
@@ -324,3 +327,19 @@ ALIPAY_PUBLIC_KEY_STRING = open(os.path.join(BASE_DIR, 'keys/ali_pay_public_key.
 ORDER_SUBJECT = '美多商城订单'
 
 
+##################DRF
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
+import datetime
+# tocken有效期
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    'JWT_RESPONSE_PAYLOAD_HANDLER':
+        # 'rest_framework_jwt.utils.jwt_response_payload_handler',
+        'apps.meiduo_admin.user.jwt_response_payload_handler',
+}

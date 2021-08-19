@@ -90,4 +90,3 @@ class PaymentStatusView(View):
             # 订单支付失败，重定向到我的订单
             return JsonResponse({'code': 400, 'errmsg': '非法请求'})
 
-        
